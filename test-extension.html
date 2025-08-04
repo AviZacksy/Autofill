@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extension Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-form">
+        <h1>🧪 Extension Test Page</h1>
+        
+        <div id="status" class="status info">
+            <strong>Extension Status:</strong> Checking...
+        </div>
+        
+        <h2>Test Form Fields</h2>
+        <form>
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" placeholder="Enter name">
+            </div>
+            
+            <div class="form-group">
+                <label for="age">Age:</label>
+                <input type="number" id="age" name="age" placeholder="Enter age">
+            </div>
+            
+            <div class="form-group">
+                <label for="gender">Gender:</label>
+                <select id="gender" name="gender">
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="touristType">Tourist Type:</label>
+                <select id="touristType" name="touristType">
+                    <option value="">Select tourist type</option>
+                    <option value="indian">Indian</option>
+                    <option value="foreigner">Foreigner</option>
+                    <option value="student">Student</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="idType">ID Type:</label>
+                <select id="idType" name="idType">
+                    <option value="">Select ID type</option>
+                    <option value="aadhar">Aadhar</option>
+                    <option value="pan">PAN</option>
+                    <option value="passport">Passport</option>
+                    <option value="drivingLicense">Driving License</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="idValue">ID Value:</label>
+                <input type="text" id="idValue" name="idValue" placeholder="Enter ID number">
+            </div>
+        </form>
+        
+        <div style="margin-top: 30px;">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Make sure the extension is loaded in Chrome</li>
+                <li>Click the extension icon</li>
+                <li>Upload an Excel file with test data</li>
+                <li>Click "Manual Trigger" to test auto-fill</li>
+                <li>Check if the form fields get filled automatically</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Check if extension is working
+        function checkExtension() {
+            const statusDiv = document.getElementById('status');
+            
+            // Check if content script is loaded
+            if (typeof window.postMessage === 'function') {
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '<strong>✅ Extension Status:</strong> Content script is loaded and ready!';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '<strong>❌ Extension Status:</strong> Content script not detected. Make sure the extension is loaded.';
+            }
+        }
+        
+        // Check extension status when page loads
+        window.addEventListener('load', checkExtension);
+        
+        // Listen for messages from extension
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'AUTO_FILL') {
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '<strong>🎉 Extension Working!</strong> Auto-fill data received: ' + JSON.stringify(event.data.payload);
+            }
+        });
+        
+        // Log form field changes for debugging
+        document.querySelectorAll('input, select').forEach(field => {
+            field.addEventListener('change', function() {
+                console.log('Field changed:', this.name, '=', this.value);
+            });
+        });
+    </script>
+</body>
+</html> 

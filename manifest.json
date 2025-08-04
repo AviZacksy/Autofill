@@ -3,7 +3,7 @@
   "name": "Booking Auto Fill",
   "version": "1.1",
   "description": "Auto-fills booking form inside cross-origin iframe",
-  "permissions": ["scripting", "storage", "activeTab"],
+  "permissions": ["scripting", "storage", "activeTab", "tabs"],
   "host_permissions": [
     "https://custom-pages.zipr.in/*",
     "https://booking.forestrajasthan.com/*"

@@ -1,6 +1,7 @@
 // Load saved data if present
-chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
-    if (res.bookingData) {
+chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => {
+    const data = res.bookingData || res.excelData;
+    if (data) {
       document.getElementById('status').innerText = "ℹ️ Excel already loaded, ready to use.";
       document.getElementById('status').className = "info";
       document.getElementById('fileName').innerText = `📁 ${res.lastFileName || "File loaded"}`;
@@ -8,19 +9,28 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
       document.getElementById('manualBtn').disabled = false;
       
       // Populate user selection dropdown
-      populateUserSelection(res.bookingData);
+      populateUserSelection(data);
     }
   });
   
   // Check for existing data on page load
-  chrome.storage.local.get(['excelData'], (result) => {
-    if (result.excelData && result.excelData.length > 0) {
-      updateStatus(`✅ Found ${result.excelData.length} records from previous session`, "success");
+  chrome.storage.local.get(['excelData', 'bookingData'], (result) => {
+    const data = result.bookingData || result.excelData;
+    if (data && data.length > 0) {
+      updateStatus(`✅ Found ${data.length} records from previous session`, "success");
       document.getElementById('startBtn').disabled = false;
       document.getElementById('manualBtn').disabled = false;
       
       // Show user selection for existing data
-      populateUserSelection(result.excelData);
+      populateUserSelection(data);
+      
+      // Set default visitor selection
+      const visitorSelect = document.getElementById('visitorSelect');
+      const visitorInfo = document.getElementById('visitorInfo');
+      if (visitorSelect && visitorInfo) {
+        visitorSelect.value = '0';
+        visitorInfo.textContent = 'Currently filling: Visitor 1';
+      }
     }
   });
   
@@ -44,7 +54,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
         }
   
         // Store data and show user selection
-        chrome.storage.local.set({ excelData: jsonData }, () => {
+        chrome.storage.local.set({ excelData: jsonData, bookingData: jsonData }, () => {
           updateStatus(`✅ Loaded ${jsonData.length} records from Excel`, "success");
           document.getElementById('fileName').textContent = file.name;
           document.getElementById('startBtn').disabled = false;
@@ -82,6 +92,10 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
     // Show user selection
     document.querySelector('.user-selection').style.display = 'block';
     visitorSelection.style.display = 'block';
+    
+    // Set default visitor selection
+    visitorSelect.value = '0';
+    visitorInfo.textContent = 'Currently filling: Visitor 1';
     
     // Add event listener for user selection
     userSelect.addEventListener('change', () => {
@@ -125,8 +139,9 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
     updateStatus("🚀 Starting auto-fill...", "info");
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.storage.local.get(["bookingData"], (res) => {
-        if (!res.bookingData || res.bookingData.length === 0) {
+      chrome.storage.local.get(["bookingData", "excelData"], (res) => {
+        const data = res.bookingData || res.excelData;
+        if (!data || data.length === 0) {
           updateStatus("❌ No data available. Please upload Excel file first.", "error");
           return;
         }
@@ -137,7 +152,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
         const selectedUserIndex = parseInt(userSelect.value);
         const selectedVisitorIndex = parseInt(visitorSelect.value);
         
-        if (selectedUserIndex < 0 || selectedUserIndex >= res.bookingData.length) {
+        if (selectedUserIndex < 0 || selectedUserIndex >= data.length) {
           updateStatus("❌ Please select a valid user from the dropdown.", "error");
           return;
         }
@@ -147,7 +162,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
           return;
         }
 
-        const selectedData = [res.bookingData[selectedUserIndex]]; // Send only selected user
+        const selectedData = [data[selectedUserIndex]]; // Send only selected user
         const visitorIndex = selectedVisitorIndex; // Send visitor index
 
         updateStatus("🚀 Sending auto-fill data to content script...", "info");
@@ -212,8 +227,9 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
     updateStatus("🔧 Manual trigger activated...", "info");
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.storage.local.get(["bookingData"], (res) => {
-        if (!res.bookingData || res.bookingData.length === 0) {
+      chrome.storage.local.get(["bookingData", "excelData"], (res) => {
+        const data = res.bookingData || res.excelData;
+        if (!data || data.length === 0) {
           updateStatus("❌ No data available. Please upload Excel file first.", "error");
           return;
         }
@@ -224,7 +240,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
         const selectedUserIndex = parseInt(userSelect.value);
         const selectedVisitorIndex = parseInt(visitorSelect.value);
         
-        if (selectedUserIndex < 0 || selectedUserIndex >= res.bookingData.length) {
+        if (selectedUserIndex < 0 || selectedUserIndex >= data.length) {
           updateStatus("❌ Please select a valid user from the dropdown.", "error");
           return;
         }
@@ -234,7 +250,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
           return;
         }
 
-        const selectedData = [res.bookingData[selectedUserIndex]]; // Send only selected user
+        const selectedData = [data[selectedUserIndex]]; // Send only selected user
         const visitorIndex = selectedVisitorIndex; // Send visitor index
 
         updateStatus("🚀 Sending auto-fill data to content script...", "info");
@@ -308,10 +324,25 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
               console.log("🔒 Security suppression setup completed");
             }
             
+            // Function to clean ID values (remove dashes, spaces, etc.)
+            function cleanIDValue(value) {
+              if (!value) return value;
+              // Remove only dashes, spaces, and other separators, keep letters and numbers
+              return String(value).replace(/[-_\s]/g, '');
+            }
+
             // Human-like typing function
             async function humanType(element, text) {
               try {
-                console.log(`📝 Human typing '${text}' into ${element.tagName}`);
+                // Clean ID values if it's an ID field (not name fields)
+                let cleanedText = text;
+                if (element.name && (element.name.includes('idValue') || element.name.includes('IDValue') || element.name.includes('id') || element.name.includes('ID')) && 
+                    !element.name.includes('name') && !element.name.includes('Name')) {
+                  cleanedText = cleanIDValue(text);
+                  console.log(`🧹 Cleaned ID value: '${text}' → '${cleanedText}'`);
+                }
+                
+                console.log(`📝 Human typing '${cleanedText}' into ${element.tagName}`);
                 
                 // Focus the element first
                 element.focus();
@@ -324,7 +355,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                 element.value = "";
                 
                 // Type character by character with human-like delays
-                const textToType = String(text).trim();
+                const textToType = String(cleanedText).trim();
                 for (let i = 0; i < textToType.length; i++) {
                   const char = textToType[i];
                   
@@ -359,7 +390,7 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                 }
                 
                 // Check if value was set correctly
-                const expectedValue = String(text).trim();
+                const expectedValue = String(cleanedText).trim();
                 const actualValue = element.value;
                 
                 if (element.name && element.name.includes('name')) {
@@ -606,8 +637,8 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                       await humanType(fieldElement, field.value);
                     }
                     
-                    // Wait between fields (reduced delay for faster filling)
-                    await new Promise(r => setTimeout(r, 200 + Math.random() * 200));
+                    // Faster field switching - reduced delay (50-100ms)
+                    await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
                     
                     // Simple verification - reduced spam
                     if (fieldElement.value !== field.value && !field.isDropdown) {

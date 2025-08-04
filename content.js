@@ -42,6 +42,13 @@ function waitForAllSelectors(selectors, timeout = 8000) {
   });
 }
 
+// Function to clean ID values (remove dashes, spaces, etc.)
+function cleanIDValue(value) {
+  if (!value) return value;
+  // Remove only dashes, spaces, and other separators, keep letters and numbers
+  return String(value).replace(/[-_\s]/g, '');
+}
+
 async function humanType(selector, text) {
   try {
     const el = document.querySelector(selector);
@@ -50,20 +57,28 @@ async function humanType(selector, text) {
       return;
     }
     
-    console.log(`📝 Human typing '${text}' into ${selector}`);
+    // Clean ID values if it's an ID field (not name fields)
+    let cleanedText = text;
+    if ((selector.includes('idValue') || selector.includes('IDValue') || selector.includes('id') || selector.includes('ID')) && 
+        !selector.includes('name') && !selector.includes('Name')) {
+      cleanedText = cleanIDValue(text);
+      console.log(`🧹 Cleaned ID value: '${text}' → '${cleanedText}'`);
+    }
+    
+    console.log(`📝 Human typing '${cleanedText}' into ${selector}`);
     
     // Focus the element first
     el.focus();
     el.click();
     
-    // Wait before starting to type (human-like delay)
-    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+    // Faster start - reduced delay before typing (100-200ms)
+    await new Promise(r => setTimeout(r, 100 + Math.random() * 100));
     
     // Clear existing value
     el.value = "";
     
     // Type character by character with human-like delays
-    const textToType = String(text).trim();
+    const textToType = String(cleanedText).trim();
     for (let i = 0; i < textToType.length; i++) {
       const char = textToType[i];
       
@@ -77,17 +92,17 @@ async function humanType(selector, text) {
         // Ignore security script errors
       }
       
-      // Human-like delay between characters (80-150ms)
-      await new Promise(r => setTimeout(r, 80 + Math.random() * 70));
-      
-      // Occasionally add a longer pause (like human thinking)
-      if (Math.random() < 0.1) {
-        await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
-      }
+                        // Faster typing - reduced delay between characters (30-60ms)
+                  await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
+                  
+                  // Occasionally add a shorter pause (reduced thinking time)
+                  if (Math.random() < 0.05) {
+                    await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+                  }
     }
     
-    // Wait after typing is complete
-    await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
+    // Faster completion - reduced delay after typing (50-100ms)
+    await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
     
     // Dispatch final events
     try {
@@ -98,7 +113,7 @@ async function humanType(selector, text) {
     }
     
     // Verify the value was set correctly
-    const expectedValue = String(text).trim();
+    const expectedValue = String(cleanedText).trim();
     const actualValue = el.value;
     
     if (selector.includes('name') || selector.includes('Name')) {
@@ -135,8 +150,8 @@ async function humanSelectDropdown(selector, value) {
     el.focus();
     el.click();
     
-    // Wait for dropdown to open (human-like delay)
-    await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
+    // Faster dropdown - reduced delay (50-100ms)
+    await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
     
     const val = String(value).trim().toLowerCase();
     
@@ -146,8 +161,8 @@ async function humanSelectDropdown(selector, value) {
         // Simulate human selection with delays
         el.focus();
         
-        // Wait before selecting (human-like)
-        await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+        // Faster selection - reduced delay (30-60ms)
+        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
         
         el.value = opt.value;
         
@@ -158,8 +173,8 @@ async function humanSelectDropdown(selector, value) {
           console.log("🔒 Security script detected on dropdown change");
         }
         
-        // Wait after selection (human-like)
-        await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+        // Faster after selection - reduced delay (30-60ms)
+        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
         
         console.log(`✅ Human selected: ${opt.text} in ${selector}`);
         return;
@@ -172,8 +187,8 @@ async function humanSelectDropdown(selector, value) {
         // Simulate human selection with delays
         el.focus();
         
-        // Wait before selecting (human-like)
-        await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+        // Faster selection - reduced delay (30-60ms)
+        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
         
         el.value = opt.value;
         
@@ -184,8 +199,8 @@ async function humanSelectDropdown(selector, value) {
           console.log("🔒 Security script detected on dropdown change");
         }
         
-        // Wait after selection (human-like)
-        await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+        // Faster after selection - reduced delay (30-60ms)
+        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
         
         console.log(`✅ Human selected (partial): ${opt.text} in ${selector}`);
         return;
@@ -209,13 +224,13 @@ async function humanClick(element) {
     
     // Simulate mouse events
     element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
     
     element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
     
     element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
     
     element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -237,6 +252,13 @@ function injectIntoIframe(iframe, data) {
     script.textContent = `
       (function() {
         console.log("🎯 Auto-fill script injected into iframe");
+        
+        // Function to clean ID values (remove dashes, spaces, etc.)
+        function cleanIDValue(value) {
+          if (!value) return value;
+          // Remove only dashes, spaces, and other separators, keep letters and numbers
+          return String(value).replace(/[-_\s]/g, '');
+        }
         
         const data = ${JSON.stringify(data)};
         const record = data[0];
@@ -360,10 +382,11 @@ function injectIntoIframe(iframe, data) {
             // Fill ID Value
             const idValueInputs = document.querySelectorAll('input[name*="idValue" i], input[id*="idValue" i], input[placeholder*="ID Proof" i], input[name="data[dataGrid1][0][idValue]"]');
             if (idValueInputs.length > 0 && record.IDValue) {
-              idValueInputs[0].value = record.IDValue;
+              const cleanedIDValue = cleanIDValue(record.IDValue);
+              idValueInputs[0].value = cleanedIDValue;
               idValueInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
               idValueInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-              console.log("✅ Filled ID value:", record.IDValue);
+              console.log("✅ Filled ID value:", cleanedIDValue, "(cleaned from:", record.IDValue + ")");
             }
             
             console.log("✅ Visitor ${visitorIndex + 1} filled in iframe!");
@@ -372,8 +395,8 @@ function injectIntoIframe(iframe, data) {
           
           retryCount++;
           if (retryCount < maxRetries) {
-            // Reduced delay from 500ms to 250ms
-            setTimeout(waitForForm, 250);
+            // Faster retry - reduced delay from 250ms to 100ms
+            setTimeout(waitForForm, 100);
           } else {
             console.error("❌ Form fields not found after", maxRetries, "attempts");
           }
@@ -671,8 +694,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Wait a bit before selection (reduced delay)
-      await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+      // Faster selection delay (20-40ms)
+      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
       
       // Fill tourist type for specific visitor
       const touristSelectors = [
@@ -689,8 +712,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Wait a bit before selection (reduced delay)
-      await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+      // Faster selection delay (20-40ms)
+      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
       
       // Fill ID type for specific visitor
       const idTypeSelectors = [
@@ -707,8 +730,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Wait a bit before selection (reduced delay)
-      await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+      // Faster selection delay (20-40ms)
+      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
       
       // Fill ID value for specific visitor
       const idValueSelectors = [
@@ -725,8 +748,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Wait a bit before selection (reduced delay)
-      await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+      // Faster selection delay (20-40ms)
+      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
       
       // Fill age for specific visitor
       const ageSelectors = [

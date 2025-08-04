@@ -1,15 +1,31 @@
 {
   "manifest_version": 3,
-  "name": "Booking Auto-Fill",
+  "name": "Booking Auto Fill",
   "version": "1.1",
-  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "description": "Auto-fills booking form inside cross-origin iframe",
+  "permissions": ["scripting", "storage", "activeTab"],
+  "host_permissions": [
+    "https://custom-pages.zipr.in/*",
+    "https://booking.forestrajasthan.com/*"
+  ],
   "action": {
     "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": ["https://example-booking-site.com/*"],
-      "js": ["content.js"]
+      "matches": [
+        "https://custom-pages.zipr.in/*",
+        "https://booking.forestrajasthan.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["xlsx.full.min.js", "debug.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

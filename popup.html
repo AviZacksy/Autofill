@@ -1,18 +1,227 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Booking Auto-Fill</title>
   <style>
-    body { font-family: Arial; padding: 10px; }
-    button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #1f2937, #4b5563);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #f9fafb;
+    }
+
+    .card {
+      background-color: #111827;
+      border-radius: 16px;
+      padding: 24px;
+      width: 320px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      transition: 0.3s;
+    }
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #facc15;
+    }
+
+    .upload-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .custom-file-label {
+      background-color: #3b82f6;
+      padding: 10px 20px;
+      border-radius: 30px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .custom-file-label:hover {
+      background-color: #2563eb;
+    }
+
+    #fileName {
+      font-size: 13px;
+      color: #d1d5db;
+    }
+
+    #status {
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .success {
+      color: #4ade80;
+    }
+
+    .info {
+      color: #60a5fa;
+    }
+
+    .error {
+      color: #f87171;
+    }
+
+    .user-selection {
+      margin: 16px 0;
+      display: none;
+    }
+
+    .user-selection.show {
+      display: block;
+    }
+
+    .user-selection label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+
+    .user-selection select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background-color: #1f2937;
+      color: #f9fafb;
+      font-size: 14px;
+    }
+
+    .user-selection select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .user-info {
+      background-color: #1f2937;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    #startBtn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(to right, #10b981, #059669);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #startBtn:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+    }
+
+    #startBtn:hover:not(:disabled) {
+      background: linear-gradient(to right, #059669, #047857);
+    }
+
+    #manualBtn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(to right, #f59e0b, #d97706);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #manualBtn:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+    }
+
+    #manualBtn:hover:not(:disabled) {
+      background: linear-gradient(to right, #d97706, #b45309);
+    }
   </style>
 </head>
 <body>
-  <h3>Upload Excel</h3>
-  <input type="file" id="excelFile" accept=".xlsx, .xls" />
-  <br><br>
-  <button id="startFill">Start Auto-Fill</button>
+  <div class="card">
+    <h2>📋 Booking Auto-Fill</h2>
+    <div class="upload-group">
+      <label class="custom-file-label" for="excelFile">📁 Upload Excel</label>
+      <input type="file" id="excelFile" accept=".xlsx,.xls" />
+      <div id="fileName"></div>
+    </div>
+    
+    <div class="user-selection" style="display: none;">
+      <label for="userSelect">Select User:</label>
+      <select id="userSelect">
+        <option value="">Choose a user...</option>
+      </select>
+      <div id="userInfo"></div>
+    </div>
+    
+    <div class="visitor-selection" style="display: none;">
+      <label for="visitorSelect">Select Visitor:</label>
+      <select id="visitorSelect" class="form-control">
+        <option value="0">Visitor 1</option>
+        <option value="1">Visitor 2</option>
+        <option value="2">Visitor 3</option>
+        <option value="3">Visitor 4</option>
+        <option value="4">Visitor 5</option>
+        <option value="5">Visitor 6</option>
+        <option value="6">Visitor 7</option>
+        <option value="7">Visitor 8</option>
+        <option value="8">Visitor 9</option>
+        <option value="9">Visitor 10</option>
+        <option value="10">Visitor 11</option>
+        <option value="11">Visitor 12</option>
+        <option value="12">Visitor 13</option>
+        <option value="13">Visitor 14</option>
+        <option value="14">Visitor 15</option>
+        <option value="15">Visitor 16</option>
+        <option value="16">Visitor 17</option>
+        <option value="17">Visitor 18</option>
+        <option value="18">Visitor 19</option>
+        <option value="19">Visitor 20</option>
+      </select>
+      <div id="visitorInfo">Currently filling: Visitor 1</div>
+    </div>
+    
+    <div id="status"></div>
+    <button id="startBtn" disabled>▶ Start Auto-Fill</button>
+    <button id="manualBtn" style="margin-top: 8px; width: 100%; padding: 8px; font-size: 13px; border: none; border-radius: 20px; background: linear-gradient(to right, #f59e0b, #d97706); color: white; font-weight: bold; cursor: pointer; transition: 0.3s;" disabled>🔧 Manual Trigger</button>
+  </div>
 
+  <!-- Scripts -->
   <script src="xlsx.full.min.js"></script>
   <script src="popup.js"></script>
 </body>

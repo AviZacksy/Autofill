@@ -311,21 +311,54 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
             // Human-like typing function
             async function humanType(element, text) {
               try {
-                // Simple approach - set value directly without focus/click
-                element.value = String(text).trim();
+                console.log(`📝 Human typing '${text}' into ${element.tagName}`);
                 
-                // Dispatch events only once
-                try {
-                  element.dispatchEvent(new Event("input", { bubbles: true }));
-                  element.dispatchEvent(new Event("change", { bubbles: true }));
-                } catch (e) {
-                  // Ignore security script errors silently
+                // Focus the element first
+                element.focus();
+                element.click();
+                
+                // Wait before starting to type (human-like delay)
+                await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+                
+                // Clear existing value
+                element.value = "";
+                
+                // Type character by character with human-like delays
+                const textToType = String(text).trim();
+                for (let i = 0; i < textToType.length; i++) {
+                  const char = textToType[i];
+                  
+                  // Add character
+                  element.value += char;
+                  
+                  // Dispatch input event for each character
+                  try {
+                    element.dispatchEvent(new Event("input", { bubbles: true }));
+                  } catch (e) {
+                    // Ignore security script errors
+                  }
+                  
+                  // Human-like delay between characters (80-150ms)
+                  await new Promise(r => setTimeout(r, 80 + Math.random() * 70));
+                  
+                  // Occasionally add a longer pause (like human thinking)
+                  if (Math.random() < 0.1) {
+                    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+                  }
                 }
                 
-                // Small delay after setting value
-                await new Promise(r => setTimeout(r, 100 + Math.random() * 100));
+                // Wait after typing is complete
+                await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
                 
-                // Check if value was set correctly (case-insensitive for name fields)
+                // Dispatch final events
+                try {
+                  element.dispatchEvent(new Event("change", { bubbles: true }));
+                  element.dispatchEvent(new Event("blur", { bubbles: true }));
+                } catch (e) {
+                  // Ignore security script errors
+                }
+                
+                // Check if value was set correctly
                 const expectedValue = String(text).trim();
                 const actualValue = element.value;
                 
@@ -334,14 +367,14 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                   if (actualValue.toLowerCase() !== expectedValue.toLowerCase()) {
                     console.log(`⚠️ Name field case mismatch: expected "${expectedValue}", got "${actualValue}"`);
                   } else {
-                    console.log(`✅ Filled: ${element.tagName} = "${actualValue}"`);
+                    console.log(`✅ Human typed: ${element.tagName} = "${actualValue}"`);
                   }
                 } else {
                   // For other fields, check exact match
                   if (actualValue !== expectedValue) {
                     console.log(`⚠️ Field value mismatch: expected "${expectedValue}", got "${actualValue}"`);
                   } else {
-                    console.log(`✅ Filled: ${element.tagName} = "${actualValue}"`);
+                    console.log(`✅ Human typed: ${element.tagName} = "${actualValue}"`);
                   }
                 }
               } catch (err) {
@@ -351,23 +384,27 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
 
             // Human-like dropdown selection function
             async function humanSelectDropdown(element, value) {
-              console.log(`🔽 Selecting '${value}' in ${element.tagName}`);
+              console.log(`🔽 Human selecting '${value}' in ${element.tagName}`);
               
               try {
-                // Click to open dropdown
+                // Focus and click to open dropdown (human-like)
                 element.focus();
                 element.click();
                 
-                // Wait a bit for dropdown to open
-                await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+                // Wait for dropdown to open (human-like delay)
+                await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
                 
                 const val = String(value).trim().toLowerCase();
                 
                 // Try exact match first
                 for (let opt of element.options) {
                   if (opt.value.toLowerCase() === val || opt.text.toLowerCase() === val) {
-                    // Simulate human selection
+                    // Simulate human selection with delays
                     element.focus();
+                    
+                    // Wait before selecting (human-like)
+                    await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+                    
                     element.value = opt.value;
                     
                     try {
@@ -377,10 +414,10 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                       console.log("🔒 Security script detected on dropdown change");
                     }
                     
-                    // Wait a bit after selection
-                    await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
+                    // Wait after selection (human-like)
+                    await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
                     
-                    console.log(`✅ Selected: ${opt.text} in ${element.tagName}`);
+                    console.log(`✅ Human selected: ${opt.text} in ${element.tagName}`);
                     return;
                   }
                 }
@@ -388,8 +425,12 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                 // Try partial match
                 for (let opt of element.options) {
                   if (opt.value.toLowerCase().includes(val) || opt.text.toLowerCase().includes(val)) {
-                    // Simulate human selection
+                    // Simulate human selection with delays
                     element.focus();
+                    
+                    // Wait before selecting (human-like)
+                    await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+                    
                     element.value = opt.value;
                     
                     try {
@@ -399,10 +440,10 @@ chrome.storage.local.get(["bookingData", "lastFileName"], (res) => {
                       console.log("🔒 Security script detected on dropdown change");
                     }
                     
-                    // Wait a bit after selection
-                    await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
+                    // Wait after selection (human-like)
+                    await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
                     
-                    console.log(`✅ Selected (partial match): ${opt.text} in ${element.tagName}`);
+                    console.log(`✅ Human selected (partial): ${opt.text} in ${element.tagName}`);
                     return;
                   }
                 }

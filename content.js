@@ -71,8 +71,8 @@ async function humanType(selector, text) {
     el.focus();
     el.click();
     
-    // Faster start - reduced delay before typing (100-200ms)
-    await new Promise(r => setTimeout(r, 100 + Math.random() * 100));
+    // Ultra fast start - minimal delay before typing (20-50ms)
+    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
     
     // Clear existing value
     el.value = "";
@@ -92,17 +92,17 @@ async function humanType(selector, text) {
         // Ignore security script errors
       }
       
-                        // Faster typing - reduced delay between characters (30-60ms)
-                  await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
+                        // Ultra fast typing - minimal delay between characters (5-15ms)
+                  await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
                   
-                  // Occasionally add a shorter pause (reduced thinking time)
-                  if (Math.random() < 0.05) {
-                    await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+                  // Rarely add a tiny pause (minimal thinking time)
+                  if (Math.random() < 0.02) {
+                    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
                   }
     }
     
-    // Faster completion - reduced delay after typing (50-100ms)
-    await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+    // Ultra fast completion - minimal delay after typing (10-20ms)
+    await new Promise(r => setTimeout(r, 10 + Math.random() * 10));
     
     // Dispatch final events
     try {
@@ -150,8 +150,8 @@ async function humanSelectDropdown(selector, value) {
     el.focus();
     el.click();
     
-    // Faster dropdown - reduced delay (50-100ms)
-    await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+    // Ultra fast dropdown - minimal delay (10-20ms)
+    await new Promise(r => setTimeout(r, 10 + Math.random() * 10));
     
     const val = String(value).trim().toLowerCase();
     
@@ -161,8 +161,8 @@ async function humanSelectDropdown(selector, value) {
         // Simulate human selection with delays
         el.focus();
         
-        // Faster selection - reduced delay (30-60ms)
-        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
+        // Ultra fast selection - minimal delay (5-15ms)
+        await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
         
         el.value = opt.value;
         
@@ -173,8 +173,8 @@ async function humanSelectDropdown(selector, value) {
           console.log("🔒 Security script detected on dropdown change");
         }
         
-        // Faster after selection - reduced delay (30-60ms)
-        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
+        // Ultra fast after selection - minimal delay (5-15ms)
+        await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
         
         console.log(`✅ Human selected: ${opt.text} in ${selector}`);
         return;
@@ -187,8 +187,8 @@ async function humanSelectDropdown(selector, value) {
         // Simulate human selection with delays
         el.focus();
         
-        // Faster selection - reduced delay (30-60ms)
-        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
+        // Ultra fast selection - minimal delay (5-15ms)
+        await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
         
         el.value = opt.value;
         
@@ -199,8 +199,8 @@ async function humanSelectDropdown(selector, value) {
           console.log("🔒 Security script detected on dropdown change");
         }
         
-        // Faster after selection - reduced delay (30-60ms)
-        await new Promise(r => setTimeout(r, 30 + Math.random() * 30));
+        // Ultra fast after selection - minimal delay (5-15ms)
+        await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
         
         console.log(`✅ Human selected (partial): ${opt.text} in ${selector}`);
         return;
@@ -224,13 +224,13 @@ async function humanClick(element) {
     
     // Simulate mouse events
     element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
+    await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
     
     element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
+    await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
     
     element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
+    await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
     
     element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -395,8 +395,8 @@ function injectIntoIframe(iframe, data) {
           
           retryCount++;
           if (retryCount < maxRetries) {
-            // Faster retry - reduced delay from 250ms to 100ms
-            setTimeout(waitForForm, 100);
+            // Ultra fast retry - minimal delay from 100ms to 50ms
+            setTimeout(waitForForm, 50);
           } else {
             console.error("❌ Form fields not found after", maxRetries, "attempts");
           }
@@ -694,8 +694,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Faster selection delay (20-40ms)
-      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
+      // Ultra fast selection delay (5-10ms)
+      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
       
       // Fill tourist type for specific visitor
       const touristSelectors = [
@@ -712,8 +712,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Faster selection delay (20-40ms)
-      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
+      // Ultra fast selection delay (5-10ms)
+      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
       
       // Fill ID type for specific visitor
       const idTypeSelectors = [
@@ -730,8 +730,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Faster selection delay (20-40ms)
-      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
+      // Ultra fast selection delay (5-10ms)
+      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
       
       // Fill ID value for specific visitor
       const idValueSelectors = [
@@ -748,8 +748,8 @@ window.addEventListener("message", async (event) => {
         }
       }
       
-      // Faster selection delay (20-40ms)
-      await new Promise(r => setTimeout(r, 20 + Math.random() * 20));
+      // Ultra fast selection delay (5-10ms)
+      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
       
       // Fill age for specific visitor
       const ageSelectors = [

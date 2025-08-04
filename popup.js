@@ -348,13 +348,13 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                 element.focus();
                 element.click();
                 
-                // Wait before starting to type (human-like delay)
-                await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+                // Ultra fast start - minimal delay before typing (10-30ms)
+                await new Promise(r => setTimeout(r, 10 + Math.random() * 20));
                 
                 // Clear existing value
                 element.value = "";
                 
-                // Type character by character with human-like delays
+                // Type character by character with ultra-fast delays
                 const textToType = String(cleanedText).trim();
                 for (let i = 0; i < textToType.length; i++) {
                   const char = textToType[i];
@@ -369,17 +369,17 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                     // Ignore security script errors
                   }
                   
-                  // Human-like delay between characters (80-150ms)
-                  await new Promise(r => setTimeout(r, 80 + Math.random() * 70));
+                  // Ultra fast delay between characters (5-15ms)
+                  await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
                   
-                  // Occasionally add a longer pause (like human thinking)
-                  if (Math.random() < 0.1) {
-                    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+                  // Rarely add a tiny pause (minimal thinking)
+                  if (Math.random() < 0.02) {
+                    await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
                   }
                 }
                 
-                // Wait after typing is complete
-                await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
+                // Ultra fast completion - minimal delay after typing (5-15ms)
+                await new Promise(r => setTimeout(r, 5 + Math.random() * 10));
                 
                 // Dispatch final events
                 try {
@@ -637,8 +637,8 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                       await humanType(fieldElement, field.value);
                     }
                     
-                    // Faster field switching - reduced delay (50-100ms)
-                    await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+                    // Ultra fast field switching - minimal delay (10-20ms)
+                    await new Promise(r => setTimeout(r, 10 + Math.random() * 10));
                     
                     // Simple verification - reduced spam
                     if (fieldElement.value !== field.value && !field.isDropdown) {

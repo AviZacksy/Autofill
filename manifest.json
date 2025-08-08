@@ -24,7 +24,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["xlsx.full.min.js", "debug.js"],
+      "resources": ["xlsx.full.min.js", "debug.js", "data.xlsx", "photos/*"],
       "matches": ["<all_urls>"]
     }
   ]

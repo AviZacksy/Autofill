@@ -125,6 +125,46 @@
       color: #9ca3af;
     }
 
+    .visitor-selection {
+      margin: 16px 0;
+      display: none;
+    }
+
+    .visitor-selection.show {
+      display: block;
+    }
+
+    .visitor-selection label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+
+    .visitor-selection select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background-color: #1f2937;
+      color: #f9fafb;
+      font-size: 14px;
+    }
+
+    .visitor-selection select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .visitor-info {
+      background-color: #1f2937;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
     #startBtn {
       margin-top: 12px;
       width: 100%;
@@ -175,8 +215,11 @@
 <body>
   <div class="card">
     <h2>📋 Booking Auto-Fill</h2>
+    <div style="text-align: center; margin-bottom: 16px; font-size: 12px; color: #9ca3af;">
+      🔄 Auto-loading data.xlsx...
+    </div>
     <div class="upload-group">
-      <label class="custom-file-label" for="excelFile">📁 Upload Excel</label>
+      <label class="custom-file-label" for="excelFile">📁 Upload Excel (Optional)</label>
       <input type="file" id="excelFile" accept=".xlsx,.xls" />
       <div id="fileName"></div>
     </div>
@@ -218,7 +261,7 @@
     
     <div id="status"></div>
     <button id="startBtn" disabled>▶ Start Auto-Fill</button>
-    <button id="manualBtn" style="margin-top: 8px; width: 100%; padding: 8px; font-size: 13px; border: none; border-radius: 20px; background: linear-gradient(to right, #f59e0b, #d97706); color: white; font-weight: bold; cursor: pointer; transition: 0.3s;" disabled>🔧 Manual Trigger</button>
+    <button id="manualBtn" disabled>🔧 Manual Trigger</button>
   </div>
 
   <!-- Scripts -->

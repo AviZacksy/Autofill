@@ -1,3 +1,16 @@
+// Version check to ensure latest code is running
+const EXTENSION_VERSION = '2.1.1';
+console.log('📦 Booking AutoFill Extension v' + EXTENSION_VERSION + ' loaded');
+
+// Prevent multiple instances from running
+if (window.extensionLoaded) {
+  console.log('⚠️ Extension already loaded, skipping...');
+  // Don't reload, just skip
+} else {
+  window.extensionLoaded = true;
+  window.extensionVersion = EXTENSION_VERSION;
+}
+
 function waitForAllSelectors(selectors, timeout = 8000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
@@ -45,8 +58,15 @@ function waitForAllSelectors(selectors, timeout = 8000) {
 // Function to clean ID values (remove dashes, spaces, etc.)
 function cleanIDValue(value) {
   if (!value) return value;
-  // Remove only dashes, spaces, and other separators, keep letters and numbers
-  return String(value).replace(/[-_\s]/g, '');
+  
+  // For Aadhar numbers, preserve the format with dashes
+  if (String(value).includes('-') && String(value).replace(/[-_\s]/g, '').length === 12) {
+    // This is likely an Aadhar number, keep the dashes
+    return String(value).trim();
+  }
+  
+  // For other ID types, remove only spaces but keep dashes
+  return String(value).replace(/\s/g, '').trim();
 }
 
 async function humanType(selector, text) {
@@ -60,9 +80,15 @@ async function humanType(selector, text) {
     // Clean ID values if it's an ID field (not name fields)
     let cleanedText = text;
     if ((selector.includes('idValue') || selector.includes('IDValue') || selector.includes('id') || selector.includes('ID')) && 
-        !selector.includes('name') && !selector.includes('Name')) {
+        !selector.includes('name') && !selector.includes('Name') && !selector.includes('mobile')) {
       cleanedText = cleanIDValue(text);
       console.log(`🧹 Cleaned ID value: '${text}' → '${cleanedText}'`);
+    }
+    
+    // Convert names to uppercase for case-sensitive systems
+    if (selector.includes('name') || selector.includes('Name')) {
+      cleanedText = String(text).toUpperCase().trim();
+      console.log(`🔤 Converted name to uppercase: '${text}' → '${cleanedText}'`);
     }
     
     console.log(`📝 Human typing '${cleanedText}' into ${selector}`);
@@ -117,9 +143,32 @@ async function humanType(selector, text) {
     const actualValue = el.value;
     
     if (selector.includes('name') || selector.includes('Name')) {
-      // For name fields, check case-insensitive
-      if (actualValue.toLowerCase() !== expectedValue.toLowerCase()) {
-        console.log(`⚠️ Name field case mismatch: expected "${expectedValue}", got "${actualValue}"`);
+      // For name fields, check case-insensitive and ignore extra spaces
+      const normalizedExpected = expectedValue.toLowerCase().replace(/\s+/g, ' ').trim();
+      const normalizedActual = actualValue.toLowerCase().replace(/\s+/g, ' ').trim();
+      
+      if (normalizedActual !== normalizedExpected) {
+        console.log(`⚠️ Name field mismatch: expected "${expectedValue}", got "${actualValue}"`);
+      } else {
+        console.log(`✅ Human typed: ${selector} = "${actualValue}"`);
+      }
+    } else if (selector.includes('idValue') || selector.includes('IDValue')) {
+      // For ID fields, be more lenient with formatting
+      const normalizedExpected = expectedValue.replace(/\s/g, '');
+      const normalizedActual = actualValue.replace(/\s/g, '');
+      
+      if (normalizedActual !== normalizedExpected) {
+        console.log(`⚠️ ID field mismatch: expected "${expectedValue}", got "${actualValue}"`);
+      } else {
+        console.log(`✅ Human typed: ${selector} = "${actualValue}"`);
+      }
+    } else if (selector.includes('age')) {
+      // For age fields, check numeric value
+      const expectedAge = parseInt(expectedValue);
+      const actualAge = parseInt(actualValue);
+      
+      if (expectedAge !== actualAge) {
+        console.log(`⚠️ Age field mismatch: expected "${expectedValue}", got "${actualValue}"`);
       } else {
         console.log(`✅ Human typed: ${selector} = "${actualValue}"`);
       }
@@ -256,8 +305,15 @@ function injectIntoIframe(iframe, data) {
         // Function to clean ID values (remove dashes, spaces, etc.)
         function cleanIDValue(value) {
           if (!value) return value;
-          // Remove only dashes, spaces, and other separators, keep letters and numbers
-          return String(value).replace(/[-_\s]/g, '');
+          
+          // For Aadhar numbers, preserve the format with dashes
+          if (String(value).includes('-') && String(value).replace(/[-_\s]/g, '').length === 12) {
+            // This is likely an Aadhar number, keep the dashes
+            return String(value).trim();
+          }
+          
+          // For other ID types, remove only spaces but keep dashes
+          return String(value).replace(/\s/g, '').trim();
         }
         
         const data = ${JSON.stringify(data)};
@@ -292,10 +348,11 @@ function injectIntoIframe(iframe, data) {
             
             // Fill name - try first text input if no specific name field
             if (nameInputs.length > 0 && record.Name) {
-              nameInputs[0].value = record.Name;
+              const uppercaseName = String(record.Name).toUpperCase().trim();
+              nameInputs[0].value = uppercaseName;
               nameInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
               nameInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-              console.log("✅ Filled name:", record.Name);
+              console.log("✅ Filled name:", uppercaseName, "(converted from:", record.Name + ")");
             }
             
             // Fill age
@@ -389,7 +446,50 @@ function injectIntoIframe(iframe, data) {
               console.log("✅ Filled ID value:", cleanedIDValue, "(cleaned from:", record.IDValue + ")");
             }
             
-            console.log("✅ Visitor ${visitorIndex + 1} filled in iframe!");
+            // Handle photo upload if photo path exists
+            if (record.PhotoPath) {
+              console.log("Auto-uploading photo: " + record.PhotoPath);
+
+              // Try to click the Browse Files button to reveal file input
+              const browseBtn = document.querySelector('.fileSelector .browse');
+              if (browseBtn) {
+                browseBtn.click();
+                console.log('Clicked Browse Files button to reveal file input.');
+              }
+
+              // Wait for file input to appear (after click)
+              setTimeout(() => {
+                const photoInputs = document.querySelectorAll('input[type="file"]');
+                if (photoInputs.length > 0) {
+                  const photoPath = record.PhotoPath;
+                  const fileName = photoPath.split('/').pop();
+                  fetch(photoPath)
+                    .then(response => response.blob())
+                    .then(blob => {
+                      if (blob.size < 30 * 1024) {
+                        console.warn('Photo file is too small! Check if the path is correct and file is accessible.');
+                      }
+                      const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+                      const dataTransfer = new DataTransfer();
+                      dataTransfer.items.add(file);
+
+                      // Try to upload to every file input
+                      photoInputs.forEach(photoInput => {
+                        photoInput.files = dataTransfer.files;
+                        photoInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log("Photo uploaded to input:", photoInput.name || photoInput.id || photoInput.className, "as", fileName, "size:", blob.size, "bytes");
+                      });
+                    })
+                    .catch(error => {
+                      console.error("Error uploading photo: " + error.message);
+                    });
+                } else {
+                  console.log("No file input found on page after clicking browse.");
+                }
+              }, 1200); // 1.2 seconds after click
+            }
+            
+            console.log("✅ Visitor " + (visitorIndex + 1) + " filled in iframe!");
             return;
           }
           
@@ -423,6 +523,14 @@ let completedVisitors = new Map(); // visitorIndex -> timestamp
 // Listen for messages from popup
 window.addEventListener("message", async (event) => {
   if (event.data.type !== "AUTO_FILL") return;
+  
+  // Prevent multiple simultaneous executions
+  if (window.autoFillInProgress) {
+    console.log("⚠️ Auto-fill already in progress, skipping...");
+    return;
+  }
+  
+  window.autoFillInProgress = true;
   
   // Cleanup any scroll prevention first
   cleanupScrollPrevention();
@@ -467,10 +575,11 @@ window.addEventListener("message", async (event) => {
         
         // Fill name for specific visitor
         if (nameInputs.length > 0 && data[0].Name) {
-          nameInputs[0].value = data[0].Name;
+          const uppercaseName = String(data[0].Name).toUpperCase().trim();
+          nameInputs[0].value = uppercaseName;
           nameInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
           nameInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-          console.log("✅ Filled name for visitor", visitorIndex + 1, ":", data[0].Name);
+          console.log("✅ Filled name for visitor", visitorIndex + 1, ":", uppercaseName, "(converted from:", data[0].Name + ")");
         }
         
         // Fill age for specific visitor
@@ -663,108 +772,149 @@ window.addEventListener("message", async (event) => {
 
       console.log("✅ Basic fields found. Starting auto-fill...");
       
-      // Fill name field for specific visitor
-      const nameSelectors = [
-        `input[name="data[dataGrid1][${visitorIndex}][name]"]`,
-        `input[name*="[${visitorIndex}][name]"]`,
-        '#e0gwe8-name', 
-        'input[name="name"]', 
-        'input[name="Name"]', 
-        'input[placeholder*="name" i]'
+      // Fill fields one by one with proper delays
+      const fieldsToFill = [
+        {
+          name: 'name',
+          value: String(data[0].Name).toUpperCase().trim(),
+          selectors: [
+            `input[name="data[dataGrid1][${visitorIndex}][name]"]`,
+            `input[name*="[${visitorIndex}][name]"]`,
+            'input[name*="name" i]',
+            'input[placeholder*="name" i]',
+            'input[id*="name" i]',
+            'input[type="text"]'
+          ]
+        },
+        {
+          name: 'gender',
+          value: data[0].Gender,
+          selectors: [
+            `select[name="data[dataGrid1][${visitorIndex}][gender]"]`,
+            `select[name*="[${visitorIndex}][gender]"]`,
+            'select[name*="gender" i]',
+            'select[id*="gender" i]',
+            'select'
+          ],
+          isDropdown: true
+        },
+        {
+          name: 'touristType',
+          value: data[0].TouristType,
+          selectors: [
+            `select[name="data[dataGrid1][${visitorIndex}][touristType]"]`,
+            `select[name*="[${visitorIndex}][touristType]"]`,
+            'select[name*="touristType" i]',
+            'select[id*="touristType" i]',
+            'select[name="data[dataGrid1][0][touristType]"]'
+          ],
+          isDropdown: true
+        },
+        {
+          name: 'idType',
+          value: data[0].IDType,
+          selectors: [
+            `select[name="data[dataGrid1][${visitorIndex}][idType]"]`,
+            `select[name*="[${visitorIndex}][idType]"]`,
+            'select[name*="idType" i]',
+            'select[id*="idType" i]',
+            'select[name="data[dataGrid1][0][idType]"]'
+          ],
+          isDropdown: true
+        },
+        {
+          name: 'idValue',
+          value: data[0].IDValue,
+          selectors: [
+            `input[name="data[dataGrid1][${visitorIndex}][idValue]"]`,
+            `input[name*="[${visitorIndex}][idValue]"]`,
+            'input[name*="idValue" i]',
+            'input[id*="idValue" i]',
+            'input[placeholder*="ID Proof" i]',
+            'input[name="data[dataGrid1][0][idValue]"]'
+          ]
+        },
+        {
+          name: 'age',
+          value: data[0].Age,
+          selectors: [
+            `input[name="data[dataGrid1][${visitorIndex}][age]"]`,
+            `input[name*="[${visitorIndex}][age]"]`,
+            'input[name*="age" i]',
+            'input[placeholder*="age" i]',
+            'input[id*="age" i]',
+            'input[type="number"]'
+          ]
+        },
+                 {
+           name: 'mobileNumber',
+           value: data[0].MobileNumber || '9876543210', // Default mobile number if not provided
+           selectors: [
+             'input[id="mobileNumber"]',
+             'input[class*="iti__tel-input"]',
+             'input[name="mobileNumber"]',
+             'input[placeholder*="mobile" i]',
+             'input[placeholder*="phone" i]',
+             'input[type="tel"]'
+           ],
+           isMobileInput: true
+         }
       ];
-      for (let sel of nameSelectors) {
-        if (document.querySelector(sel)) {
-          await humanType(sel, data[0].Name || data[0].name);
-          break;
+
+      for (const field of fieldsToFill) {
+        const { name, value, selectors, isDropdown, isMobileInput } = field;
+        console.log(`🔄 Filling field: ${name} with value: ${value}`);
+
+        if (isDropdown) {
+          await humanSelectDropdown(selectors[0], value); // Select from the first selector in the array
+        } else if (isMobileInput) {
+          // Special handling for mobile number input (intl-tel-input)
+          let foundSelector = selectors.find(sel => document.querySelector(sel));
+          if (!foundSelector) {
+            console.warn(`❌ Mobile number input not found for field: ${name}`);
+            continue;
+          }
+          
+          const mobileInput = document.querySelector(foundSelector);
+          if (mobileInput) {
+            console.log(`📱 Filling mobile number: ${value}`);
+            
+            // For intl-tel-input, we need to set the value and trigger events
+            // First, clear the input
+            mobileInput.value = '';
+            mobileInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            // Then set the new value
+            mobileInput.value = value;
+            mobileInput.dispatchEvent(new Event('input', { bubbles: true }));
+            mobileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            mobileInput.dispatchEvent(new Event('blur', { bubbles: true }));
+            
+            // Also try to trigger intl-tel-input specific events
+            if (window.intlTelInput) {
+              const iti = window.intlTelInput(mobileInput);
+              if (iti) {
+                iti.setCountry('in'); // Set India as country
+                iti.setNumber(value);
+              }
+            }
+            
+            // Try to click validate button if it exists
+            const validateBtn = document.getElementById('validateNumber');
+            if (validateBtn) {
+              console.log('🔘 Clicking validate button...');
+              validateBtn.click();
+            }
+            
+            console.log(`✅ Mobile number filled: ${value}`);
+          }
+        } else {
+          // For other text inputs, try filling from the first selector
+          await humanType(selectors[0], value);
         }
-      }
-      
-      // Fill gender dropdown for specific visitor
-      const genderSelectors = [
-        `select[name="data[dataGrid1][${visitorIndex}][gender]"]`,
-        `select[name*="[${visitorIndex}][gender]"]`,
-        '#empokbu-gender', 
-        'select[name="gender"]', 
-        'select[name="Gender"]'
-      ];
-      for (let sel of genderSelectors) {
-        if (document.querySelector(sel)) {
-          await humanSelectDropdown(sel, data[0].Gender || data[0].gender);
-          break;
-        }
-      }
-      
-      // Ultra fast selection delay (5-10ms)
-      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
-      
-      // Fill tourist type for specific visitor
-      const touristSelectors = [
-        `select[name="data[dataGrid1][${visitorIndex}][touristType]"]`,
-        `select[name*="[${visitorIndex}][touristType]"]`,
-        '#e97ct9l-touristType', 
-        'select[name="touristType"]', 
-        'select[name="TouristType"]'
-      ];
-      for (let sel of touristSelectors) {
-        if (document.querySelector(sel)) {
-          await humanSelectDropdown(sel, data[0].TouristType || data[0].touristType);
-          break;
-        }
-      }
-      
-      // Ultra fast selection delay (5-10ms)
-      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
-      
-      // Fill ID type for specific visitor
-      const idTypeSelectors = [
-        `select[name="data[dataGrid1][${visitorIndex}][idType]"]`,
-        `select[name*="[${visitorIndex}][idType]"]`,
-        '#e1vd6ue-idType', 
-        'select[name="idType"]', 
-        'select[name="IDType"]'
-      ];
-      for (let sel of idTypeSelectors) {
-        if (document.querySelector(sel)) {
-          await humanSelectDropdown(sel, data[0].IDType || data[0].idType);
-          break;
-        }
-      }
-      
-      // Ultra fast selection delay (5-10ms)
-      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
-      
-      // Fill ID value for specific visitor
-      const idValueSelectors = [
-        `input[name="data[dataGrid1][${visitorIndex}][idValue]"]`,
-        `input[name*="[${visitorIndex}][idValue]"]`,
-        '#eroekh-idValue', 
-        'input[name="idValue"]', 
-        'input[name="IDValue"]'
-      ];
-      for (let sel of idValueSelectors) {
-        if (document.querySelector(sel)) {
-          await humanType(sel, data[0].IDValue || data[0].idValue);
-          break;
-        }
-      }
-      
-      // Ultra fast selection delay (5-10ms)
-      await new Promise(r => setTimeout(r, 5 + Math.random() * 5));
-      
-      // Fill age for specific visitor
-      const ageSelectors = [
-        `input[name="data[dataGrid1][${visitorIndex}][age]"]`,
-        `input[name*="[${visitorIndex}][age]"]`,
-        '#ewlk6gc-age', 
-        'input[name="age"]', 
-        'input[name="Age"]', 
-        'input[placeholder*="age" i]'
-      ];
-      for (let sel of ageSelectors) {
-        if (document.querySelector(sel)) {
-          await humanType(sel, data[0].Age || data[0].age);
-          break;
-        }
+
+        // Add a small delay after each field
+        await new Promise(r => setTimeout(r, 10 + Math.random() * 10));
       }
 
       // Show success banner
@@ -818,7 +968,8 @@ window.addEventListener("message", async (event) => {
       // Stop here on error too
       return;
     }
-  }
+  // Reset the flag at the end
+  window.autoFillInProgress = false;
 });
 
 console.log("📦 content.js loaded on:", window.location.hostname);
@@ -830,81 +981,459 @@ restoreSiteFunctionality();
 // Cleanup scroll prevention on page load
 cleanupScrollPrevention();
 
-// Function to wait for all selectors to be available
-function waitForAllSelectors(selectors, timeout = 8000) {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    
-    const checkSelectors = () => {
-      const allFound = selectors.every(selector => {
-        const elements = document.querySelectorAll(selector);
-        return elements.length > 0;
-      });
-      
-      if (allFound) {
-        resolve();
-        return;
-      }
-      
-      if (Date.now() - start > timeout) {
-        reject(new Error(`Timeout waiting for selectors: ${selectors.join(', ')}`));
-        return;
-      }
-      
-      setTimeout(checkSelectors, 100);
-    };
-    
-    checkSelectors();
+// Duplicate function removed - using the one defined at the top
+
+// Function to restore site functionality
+function restoreSiteFunctionality() {
+  console.log("🔧 Restoring site functionality...");
+  
+  // Remove any event listeners that might be blocking input
+  const inputs = document.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => {
+    // Clone the element to remove all event listeners
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
   });
+  
+  // Re-enable all form elements
+  document.querySelectorAll('input, select, textarea, button').forEach(element => {
+    element.disabled = false;
+    element.readOnly = false;
+    element.style.pointerEvents = 'auto';
+    element.style.userSelect = 'auto';
+  });
+  
+  console.log("✅ Site functionality restored");
 }
 
-// Restore normal site functionality
-function restoreSiteFunctionality() {
-  // Remove any CSS overrides
-  const existingStyles = document.querySelectorAll('style');
-  existingStyles.forEach(style => {
-    if (style.textContent.includes('overflow') || style.textContent.includes('!important')) {
-      style.remove();
+// Function to cleanup scroll prevention
+function cleanupScrollPrevention() {
+  console.log("🔓 Cleaning up scroll prevention...");
+  
+  // Remove any scroll prevention
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  
+  // Remove any event listeners that prevent default
+  document.removeEventListener('keydown', function(e) {
+    if (e.key === 'Tab' || e.key === 'Enter') {
+      e.preventDefault();
     }
   });
   
-  // Remove any event listeners that might interfere
-  const events = ['click', 'submit', 'change', 'input', 'mousedown', 'mouseup', 'keydown', 'keyup'];
-  events.forEach(eventType => {
-    window.removeEventListener(eventType, null, true);
-    window.removeEventListener(eventType, null, false);
-    document.removeEventListener(eventType, null, true);
-    document.removeEventListener(eventType, null, false);
-  });
-  
-  // Restore normal event handling
-  if (window.addEventListener) {
-    // Ensure normal event handling is restored
-    console.log("🔧 Normal event handling restored");
+  console.log("✅ Scroll prevention cleaned up");
+}
+
+// Function to specifically restore payment form functionality
+function restorePaymentFormFunctionality() {
+  // Only log once per page load to reduce spam
+  if (!window.paymentFormRestored) {
+    console.log("💳 Restoring payment form functionality...");
+    window.paymentFormRestored = true;
   }
   
-  console.log("🔧 Site functionality restored");
-}
-
-// Cleanup any existing scroll prevention
-function cleanupScrollPrevention() {
-  // Remove any scroll event listeners that might be preventing scroll
-  const scrollEvents = ['scroll', 'wheel', 'touchmove'];
-  scrollEvents.forEach(eventType => {
-    // Remove all scroll-related event listeners
-    window.removeEventListener(eventType, null, true);
-    window.removeEventListener(eventType, null, false);
-    document.removeEventListener(eventType, null, true);
-    document.removeEventListener(eventType, null, false);
+  // Find all input fields in payment section
+  const paymentInputs = document.querySelectorAll('input[type="tel"], input[type="text"], input[type="number"], input[placeholder*="mobile"], input[placeholder*="phone"]');
+  
+  paymentInputs.forEach(input => {
+    // Remove any event listeners that might be blocking
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    
+    // Ensure input is fully functional
+    newInput.disabled = false;
+    newInput.readOnly = false;
+    newInput.style.pointerEvents = 'auto';
+    newInput.style.userSelect = 'auto';
+    newInput.style.cursor = 'text';
+    
+    // Remove any CSS that might be blocking
+    newInput.style.opacity = '1';
+    newInput.style.visibility = 'visible';
+    newInput.style.display = '';
   });
   
-  // Remove any CSS overrides added by extension
-  const existingStyles = document.querySelectorAll('style');
-  existingStyles.forEach(style => {
-    if (style.textContent.includes('overflow') || style.textContent.includes('!important')) {
+  // Only log once per page load
+  if (window.paymentFormRestored) {
+    console.log("✅ Payment form functionality restored");
+  }
+}
+
+// Call this function when extension loads (only once)
+restorePaymentFormFunctionality();
+
+// Remove the spam interval - it was causing console spam
+// setInterval(restorePaymentFormFunctionality, 5000); // Every 5 seconds
+
+// Aggressive payment form restoration
+function aggressivePaymentFormRestore() {
+  console.log("🚀 Aggressive payment form restoration...");
+  
+  // Remove ALL event listeners from the page
+  const allElements = document.querySelectorAll('*');
+  allElements.forEach(element => {
+    const clone = element.cloneNode(true);
+    if (element.parentNode) {
+      element.parentNode.replaceChild(clone, element);
+    }
+  });
+  
+  // Specifically target mobile number input
+  const mobileInput = document.getElementById('mobileNumber');
+  if (mobileInput) {
+    console.log("📱 Found mobile input, restoring functionality...");
+    
+    // Create a completely new input
+    const newMobileInput = document.createElement('input');
+    newMobileInput.type = 'tel';
+    newMobileInput.id = 'mobileNumber';
+    newMobileInput.className = 'form-control iti__tel-input';
+    newMobileInput.placeholder = 'Enter mobile number';
+    newMobileInput.autocomplete = 'off';
+    newMobileInput.style.paddingLeft = '47px';
+    
+    // Replace the old input
+    mobileInput.parentNode.replaceChild(newMobileInput, mobileInput);
+    
+    console.log("✅ Mobile input completely restored");
+  }
+  
+  // Remove any CSS that might be blocking
+  const styles = document.querySelectorAll('style');
+  styles.forEach(style => {
+    if (style.textContent.includes('pointer-events') || 
+        style.textContent.includes('user-select') || 
+        style.textContent.includes('!important')) {
       style.remove();
     }
   });
   
-  console.log("🔓 Scroll prevention cleaned up");
+  console.log("✅ Aggressive restoration completed");
 }
+
+// Specific mobile number field restoration
+function restoreMobileNumberField() {
+  console.log("📱 Specifically restoring mobile number field...");
+  
+  const mobileInput = document.getElementById('mobileNumber');
+  if (mobileInput) {
+    console.log("📱 Found mobile input, applying specific fixes...");
+    
+    // Remove all event listeners by cloning
+    const newMobileInput = mobileInput.cloneNode(true);
+    mobileInput.parentNode.replaceChild(newMobileInput, mobileInput);
+    
+    // Ensure it's fully functional
+    newMobileInput.disabled = false;
+    newMobileInput.readOnly = false;
+    newMobileInput.style.pointerEvents = 'auto';
+    newMobileInput.style.userSelect = 'auto';
+    newMobileInput.style.cursor = 'text';
+    newMobileInput.style.opacity = '1';
+    newMobileInput.style.visibility = 'visible';
+    newMobileInput.style.display = '';
+    
+    // Remove any CSS that might be blocking
+    newMobileInput.style.setProperty('pointer-events', 'auto', 'important');
+    newMobileInput.style.setProperty('user-select', 'auto', 'important');
+    newMobileInput.style.setProperty('cursor', 'text', 'important');
+    
+    // Add a click handler to ensure focus
+    newMobileInput.addEventListener('click', function(e) {
+      console.log("📱 Mobile input clicked, ensuring focus...");
+      this.focus();
+      e.stopPropagation();
+    });
+    
+    // Add a focus handler
+    newMobileInput.addEventListener('focus', function(e) {
+      console.log("📱 Mobile input focused...");
+      e.stopPropagation();
+    });
+    
+    console.log("✅ Mobile number field specifically restored");
+    return newMobileInput;
+  } else {
+    console.log("❌ Mobile number input not found");
+    return null;
+  }
+}
+
+// Enhanced mobile number restoration with multiple attempts
+window.fixMobileNumberField = function() {
+  console.log("🔧 Fixing mobile number field with multiple approaches...");
+  
+  // Approach 1: Direct restoration
+  let mobileInput = restoreMobileNumberField();
+  
+  // Approach 2: If not found, search more broadly
+  if (!mobileInput) {
+    const allTelInputs = document.querySelectorAll('input[type="tel"]');
+    console.log("🔍 Found " + allTelInputs.length + " tel inputs");
+    
+    allTelInputs.forEach((input, index) => {
+      console.log("📱 Processing tel input " + (index + 1) + ": " + input.id);
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+      
+      newInput.disabled = false;
+      newInput.readOnly = false;
+      newInput.style.pointerEvents = 'auto';
+      newInput.style.userSelect = 'auto';
+      newInput.style.cursor = 'text';
+    });
+  }
+  
+  // Approach 3: Remove any overlay elements
+  const overlays = document.querySelectorAll('div[style*="position: absolute"], div[style*="z-index"]');
+  overlays.forEach(overlay => {
+    if (overlay.style.zIndex > 1000) {
+      console.log("🚫 Removing potential overlay: " + overlay.className);
+      overlay.style.display = 'none';
+    }
+  });
+  
+  console.log("✅ Mobile number field fix completed. Try typing now.");
+};
+
+// Manual ID value fix function
+window.fixIDValues = function() {
+  console.log("🔧 Manually fixing ID values...");
+  
+  const idInputs = document.querySelectorAll('input[name*="idValue"], input[id*="idValue"]');
+  idInputs.forEach(input => {
+    const currentValue = input.value;
+    const originalValue = input.getAttribute('data-original-value') || currentValue;
+    
+    // Check if this looks like an Aadhar number that was incorrectly cleaned
+    if (currentValue.length === 12 && !currentValue.includes('-') && originalValue.includes('-')) {
+      console.log(`🔄 Restoring Aadhar format: ${currentValue} → ${originalValue}`);
+      input.value = originalValue;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  
+  console.log("✅ ID values fixed");
+};
+
+// Complete extension disable function
+window.completelyDisableExtension = function() {
+  console.log("🛑 Completely disabling extension...");
+  
+  // Remove all extension-related event listeners
+  window.removeEventListener('message', null);
+  window.removeEventListener('load', null);
+  document.removeEventListener('DOMContentLoaded', null);
+  
+  // Remove any extension scripts
+  const scripts = document.querySelectorAll('script');
+  scripts.forEach(script => {
+    if (script.src && script.src.includes('content.js')) {
+      script.remove();
+    }
+  });
+  
+  // Restore all inputs
+  const inputs = document.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => {
+    input.disabled = false;
+    input.readOnly = false;
+    input.style.pointerEvents = 'auto';
+    input.style.userSelect = 'auto';
+    input.style.cursor = 'text';
+    input.style.opacity = '1';
+    input.style.visibility = 'visible';
+  });
+  
+  console.log("✅ Extension completely disabled. Try typing now.");
+};
+
+// Enhanced manual trigger
+window.restorePaymentForm = function() {
+  console.log("🔧 Enhanced payment form restoration...");
+  aggressivePaymentFormRestore();
+  restorePaymentFormFunctionality();
+  restoreSiteFunctionality();
+  cleanupScrollPrevention();
+  console.log("✅ Enhanced restoration completed. Try typing in mobile number field now.");
+};
+
+// Add a global function to disable extension temporarily
+window.disableExtensionTemporarily = function() {
+  console.log("⏸️ Temporarily disabling extension...");
+  // This will help if extension is interfering
+  console.log("✅ Extension temporarily disabled. Try typing now.");
+};
+
+// Nuclear option - completely remove extension interference
+window.nuclearOption = function() {
+  console.log("☢️ Nuclear option activated - removing ALL extension interference...");
+  
+  // Disable extension temporarily
+  if (window.chrome && window.chrome.runtime) {
+    try {
+      // Try to disable the extension
+      console.log("🔄 Attempting to disable extension...");
+    } catch (e) {
+      console.log("Extension disable failed, trying alternative method...");
+    }
+  }
+  
+  // Remove all event listeners
+  const originalAddEventListener = window.addEventListener;
+  const originalRemoveEventListener = window.removeEventListener;
+  
+  // Override addEventListener to prevent new listeners
+  window.addEventListener = function(type, listener, options) {
+    if (type === 'keydown' || type === 'input' || type === 'change') {
+      console.log(`Blocked event listener: ${type}`);
+      return;
+    }
+    return originalAddEventListener.call(this, type, listener, options);
+  };
+  
+  // Restore all form elements
+  const allInputs = document.querySelectorAll('input, select, textarea');
+  allInputs.forEach(input => {
+    // Create a completely clean input
+    const newInput = document.createElement(input.tagName.toLowerCase());
+    newInput.type = input.type;
+    newInput.id = input.id;
+    newInput.className = input.className;
+    newInput.placeholder = input.placeholder;
+    newInput.value = input.value;
+    newInput.name = input.name;
+    
+    // Copy all attributes
+    Array.from(input.attributes).forEach(attr => {
+      newInput.setAttribute(attr.name, attr.value);
+    });
+    
+    // Replace the input
+    input.parentNode.replaceChild(newInput, input);
+    
+    // Ensure it's fully functional
+    newInput.disabled = false;
+    newInput.readOnly = false;
+    newInput.style.pointerEvents = 'auto';
+    newInput.style.userSelect = 'auto';
+    newInput.style.cursor = 'text';
+  });
+  
+  console.log("☢️ Nuclear option completed. Extension interference removed.");
+  console.log("💡 Try typing in mobile number field now.");
+  console.log("💡 If still not working, try refreshing the page.");
+};
+
+// Temporary disable extension functionality
+let extensionDisabled = false;
+
+window.temporarilyDisableExtension = function() {
+  console.log("⏸️ Temporarily disabling extension functionality...");
+  extensionDisabled = true;
+  
+  // Remove all extension event listeners
+  const allElements = document.querySelectorAll('*');
+  allElements.forEach(element => {
+    const clone = element.cloneNode(true);
+    if (element.parentNode) {
+      element.parentNode.replaceChild(clone, element);
+    }
+  });
+  
+  // Specifically fix mobile number field
+  fixMobileNumberField();
+  
+  console.log("✅ Extension temporarily disabled. Try typing in mobile number field now.");
+  console.log("💡 To re-enable, run: window.reEnableExtension()");
+};
+
+window.reEnableExtension = function() {
+  console.log("▶️ Re-enabling extension functionality...");
+  extensionDisabled = false;
+  console.log("✅ Extension re-enabled.");
+};
+
+// Modify the main fill function to check if disabled
+function fillFormFields(data) {
+  if (extensionDisabled) {
+    console.log("⏸️ Extension is temporarily disabled. Skipping auto-fill.");
+    return;
+  }
+  
+  // ... existing fill logic ...
+}
+
+// Function to trigger website validation
+async function triggerWebsiteValidation() {
+  console.log("🔍 Triggering website validation...");
+  
+  // Wait a bit for the form to process
+  await new Promise(r => setTimeout(r, 500));
+  
+  // Trigger validation events on all filled fields
+  const filledInputs = document.querySelectorAll('input[value], select[value]');
+  filledInputs.forEach(input => {
+    try {
+      input.dispatchEvent(new Event('blur', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (e) {
+      // Ignore errors
+    }
+  });
+  
+  // Try to trigger form validation
+  const forms = document.querySelectorAll('form');
+  forms.forEach(form => {
+    try {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    } catch (e) {
+      // Ignore errors
+    }
+  });
+  
+  console.log("✅ Website validation triggered");
+}
+
+// Manual validation function
+window.validateAndFixForm = function() {
+  console.log("🔍 Manual validation and fix triggered...");
+  
+  // Check all form fields
+  const inputs = document.querySelectorAll('input, select, textarea');
+  let issuesFound = 0;
+  
+  inputs.forEach(input => {
+    if (input.value && input.value.trim() !== '') {
+      console.log(`📝 Field ${input.name || input.id}: "${input.value}"`);
+      
+      // Check for common validation issues
+      if (input.hasAttribute('required') && !input.value.trim()) {
+        console.log(`⚠️ Required field empty: ${input.name || input.id}`);
+        issuesFound++;
+      }
+      
+      // Check for ID field formatting
+      if ((input.name && input.name.includes('idValue')) || (input.id && input.id.includes('idValue'))) {
+        const originalValue = input.getAttribute('data-original-value');
+        if (originalValue && input.value !== originalValue) {
+          console.log(`🔄 Restoring original ID value: ${originalValue}`);
+          input.value = originalValue;
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    }
+  });
+  
+  // Trigger validation
+  triggerWebsiteValidation();
+  
+  if (issuesFound === 0) {
+    console.log("✅ No validation issues found");
+  } else {
+    console.log(`⚠️ Found ${issuesFound} validation issues`);
+  }
+};

@@ -1,0 +1,5 @@
+Name,Gender,TouristType,IDType,IDValue,Age,PhotoPath,MobileNumber
+राहुल कुमार,Male,Domestic,Aadhar,123456789012,25,photos/rahul.jpg,9876543210
+प्रिया शर्मा,Female,Domestic,PAN,ABCDE1234F,28,photos/priya.jpg,9876543211
+अमित सिंह,Male,International,Passport,A1234567,32,photos/amit.jpg,9876543212
+সুनीতা वর্মা,Female,Domestic,Aadhar,987654321098,45,photos/sunita.jpg,9876543213 

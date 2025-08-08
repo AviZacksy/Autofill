@@ -99,10 +99,11 @@
     // Try to fill name
     const nameInputs = document.querySelectorAll('input[name*="name" i], input[placeholder*="name" i], input[id*="name" i], input[type="text"]');
     if (nameInputs.length > 0) {
-      nameInputs[0].value = testData.Name;
+      const uppercaseName = String(testData.Name).toUpperCase().trim();
+      nameInputs[0].value = uppercaseName;
       nameInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
       nameInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-      console.log("✅ Filled name:", testData.Name);
+      console.log("✅ Filled name:", uppercaseName, "(converted from:", testData.Name + ")");
     }
     
     // Try to fill age

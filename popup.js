@@ -8,10 +8,79 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
       document.getElementById('startBtn').disabled = false;
       document.getElementById('manualBtn').disabled = false;
       
+      // Update the auto-loading message to show already loaded
+      const autoLoadMsg = document.querySelector('.card div[style*="text-align: center"]');
+      if (autoLoadMsg) {
+        autoLoadMsg.textContent = `✅ Already loaded ${data.length} records from ${res.lastFileName || "data.xlsx"}`;
+        autoLoadMsg.style.color = "#4ade80";
+      }
+      
       // Populate user selection dropdown
       populateUserSelection(data);
+    } else {
+      // Auto-load data.xlsx if no saved data exists
+      autoLoadExcelFile();
     }
   });
+  
+  // Function to automatically load data.xlsx
+  async function autoLoadExcelFile() {
+    try {
+      updateStatus("🔄 Auto-loading data.xlsx...", "info");
+      
+      // Update the auto-loading message
+      const autoLoadMsg = document.querySelector('.card div[style*="text-align: center"]');
+      if (autoLoadMsg) {
+        autoLoadMsg.textContent = "🔄 Auto-loading data.xlsx...";
+      }
+      
+      // Fetch the data.xlsx file from the extension directory
+      const response = await fetch(chrome.runtime.getURL('data.xlsx'));
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data.xlsx: ${response.status}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if (jsonData.length === 0) {
+        updateStatus("❌ No data found in data.xlsx", "error");
+        return;
+      }
+
+      // Store data and show user selection
+      chrome.storage.local.set({ excelData: jsonData, bookingData: jsonData, lastFileName: "data.xlsx" }, () => {
+        updateStatus(`✅ Auto-loaded ${jsonData.length} records from data.xlsx`, "success");
+        document.getElementById('fileName').textContent = "📁 data.xlsx (Auto-loaded)";
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('manualBtn').disabled = false;
+        
+        // Update the auto-loading message to success
+        const autoLoadMsg = document.querySelector('.card div[style*="text-align: center"]');
+        if (autoLoadMsg) {
+          autoLoadMsg.textContent = `✅ Auto-loaded ${jsonData.length} records from data.xlsx`;
+          autoLoadMsg.style.color = "#4ade80";
+        }
+        
+        // Show user selection
+        populateUserSelection(jsonData);
+      });
+    } catch (error) {
+      updateStatus("❌ Error auto-loading data.xlsx: " + error.message, "error");
+      console.error("Auto-load error:", error);
+      
+      // Update the auto-loading message to error
+      const autoLoadMsg = document.querySelector('.card div[style*="text-align: center"]');
+      if (autoLoadMsg) {
+        autoLoadMsg.textContent = "❌ Error auto-loading data.xlsx";
+        autoLoadMsg.style.color = "#f87171";
+      }
+    }
+  }
   
   // Check for existing data on page load
   chrome.storage.local.get(['excelData', 'bookingData'], (result) => {
@@ -34,7 +103,7 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
     }
   });
   
-  // Excel file upload handler
+  // Excel file upload handler (kept for manual override)
   document.getElementById('excelFile').addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -54,7 +123,7 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
         }
   
         // Store data and show user selection
-        chrome.storage.local.set({ excelData: jsonData, bookingData: jsonData }, () => {
+        chrome.storage.local.set({ excelData: jsonData, bookingData: jsonData, lastFileName: file.name }, () => {
           updateStatus(`✅ Loaded ${jsonData.length} records from Excel`, "success");
           document.getElementById('fileName').textContent = file.name;
           document.getElementById('startBtn').disabled = false;
@@ -105,11 +174,11 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
         userInfo.innerHTML = `
           <strong>Selected User:</strong><br>
           Name: ${user.Name}<br>
-          Age: ${user.Age}<br>
           Gender: ${user.Gender}<br>
           Tourist Type: ${user.TouristType}<br>
           ID Type: ${user.IDType}<br>
-          ID Value: ${user.IDValue}
+          ID Value: ${user.IDValue}<br>
+          Age: ${user.Age}${user.PhotoPath ? `<br>📸 Photo: ${user.PhotoPath}` : ''}
         `;
       }
     });
@@ -125,11 +194,11 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
       userInfo.innerHTML = `
         <strong>Selected User:</strong><br>
         Name: ${data[0].Name}<br>
-        Age: ${data[0].Age}<br>
         Gender: ${data[0].Gender}<br>
         Tourist Type: ${data[0].TouristType}<br>
         ID Type: ${data[0].IDType}<br>
-        ID Value: ${data[0].IDValue}
+        ID Value: ${data[0].IDValue}<br>
+        Age: ${data[0].Age}${data[0].PhotoPath ? `<br>📸 Photo: ${data[0].PhotoPath}` : ''}
       `;
     }
   }
@@ -342,6 +411,12 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                   console.log(`🧹 Cleaned ID value: '${text}' → '${cleanedText}'`);
                 }
                 
+                // Convert names to uppercase for case-sensitive systems
+                if (element.name && (element.name.includes('name') || element.name.includes('Name'))) {
+                  cleanedText = String(text).toUpperCase().trim();
+                  console.log(`🔤 Converted name to uppercase: '${text}' → '${cleanedText}'`);
+                }
+                
                 console.log(`📝 Human typing '${cleanedText}' into ${element.tagName}`);
                 
                 // Focus the element first
@@ -546,7 +621,7 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                 const fieldsToFill = [
                   {
                     name: 'name',
-                    value: record.Name,
+                    value: String(record.Name).toUpperCase().trim(),
                     selectors: [
                       `input[name="data[dataGrid1][${visitorIndex}][name]"]`,
                       `input[name*="[${visitorIndex}][name]"]`,
@@ -554,18 +629,6 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                       'input[placeholder*="name" i]',
                       'input[id*="name" i]',
                       'input[type="text"]'
-                    ]
-                  },
-                  {
-                    name: 'age',
-                    value: record.Age,
-                    selectors: [
-                      `input[name="data[dataGrid1][${visitorIndex}][age]"]`,
-                      `input[name*="[${visitorIndex}][age]"]`,
-                      'input[name*="age" i]',
-                      'input[placeholder*="age" i]',
-                      'input[id*="age" i]',
-                      'input[type="number"]'
                     ]
                   },
                   {
@@ -615,8 +678,54 @@ chrome.storage.local.get(["bookingData", "excelData", "lastFileName"], (res) => 
                       'input[placeholder*="ID Proof" i]',
                       'input[name="data[dataGrid1][0][idValue]"]'
                     ]
+                  },
+                  {
+                    name: 'age',
+                    value: record.Age,
+                    selectors: [
+                      `input[name="data[dataGrid1][${visitorIndex}][age]"]`,
+                      `input[name*="[${visitorIndex}][age]"]`,
+                      'input[name*="age" i]',
+                      'input[placeholder*="age" i]',
+                      'input[id*="age" i]',
+                      'input[type="number"]'
+                    ]
                   }
                 ];
+                
+                // Handle photo upload if photo path exists
+                if (record.PhotoPath) {
+                  console.log(`📸 Auto-uploading photo: ${record.PhotoPath}`);
+                  
+                  // Find photo upload input
+                  const photoInputs = document.querySelectorAll(`input[type="file"][name*="photo" i], input[type="file"][name*="image" i], input[type="file"][name*="photo" i], input[type="file"][accept*="image"], input[type="file"]`);
+                  
+                  if (photoInputs.length > 0) {
+                    const photoInput = photoInputs[0];
+                    console.log(`📸 Found photo input: ${photoInput.name || photoInput.id}`);
+                    
+                    // Create a File object from the photo path
+                    fetch(record.PhotoPath)
+                      .then(response => response.blob())
+                      .then(blob => {
+                        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                        
+                        // Create a new FileList-like object
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        photoInput.files = dataTransfer.files;
+                        
+                        // Trigger change event
+                        photoInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Photo uploaded successfully: ${record.PhotoPath}`);
+                      })
+                      .catch(error => {
+                        console.error(`❌ Error uploading photo: ${error.message}`);
+                      });
+                  } else {
+                    console.log("❌ No photo upload input found");
+                  }
+                }
                 
                 // Fill each field with proper delays
                 for (let field of fieldsToFill) {

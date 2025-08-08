@@ -1,0 +1,11 @@
+Name,Gender,TouristType,IDType,IDValue,Age,PhotoPath
+RAHUL KUMAR,Male,Indian,Aadhar,123456789012,25,photos/rahul.jpg
+PRIYA SHARMA,Female,Indian,PAN,ABCDE1234F,28,photos/priya.jpg
+AMIT SINGH,Male,Foreigner,Passport,A1234567,32,photos/amit.jpg
+SUNITA VERMA,Female,Indian,Aadhar,987654321098,45,photos/sunita.jpg
+RAJESH PATEL,Male,Indian,Aadhar,111122223333,35,photos/rajesh.jpg
+NEHA GUPTA,Female,Foreigner,Passport,B9876543,29,photos/neha.jpg
+VIKAS MALHOTRA,Male,Indian,PAN,XYZAB5678C,41,photos/vikas.jpg
+ANJALI DESAI,Female,Indian,Aadhar,444455556666,27,photos/anjali.jpg
+SURESH KUMAR,Male,Foreigner,Passport,C5555666,38,photos/suresh.jpg
+MEERA REDDY,Female,Indian,Aadhar,777788889999,33,photos/meera.jpg

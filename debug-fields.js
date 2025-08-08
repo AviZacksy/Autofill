@@ -59,10 +59,11 @@
   
   // Fill name
   if (nameField && testData.Name) {
-    nameField.value = testData.Name;
+    const uppercaseName = String(testData.Name).toUpperCase().trim();
+    nameField.value = uppercaseName;
     nameField.dispatchEvent(new Event('input', { bubbles: true }));
     nameField.dispatchEvent(new Event('change', { bubbles: true }));
-    console.log("✅ Filled name:", testData.Name);
+    console.log("✅ Filled name:", uppercaseName, "(converted from:", testData.Name + ")");
   }
   
   // Fill age
